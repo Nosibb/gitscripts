@@ -1,0 +1,155 @@
+#!/bin/bash
+################################################################
+#AUTHOR= Robert.Homa
+
+VERSION_NO="0.1.0 beta"
+
+declare -i iStrWidth=0
+declare -i COLUMNS=0
+declare -a aFileConflictOutput
+declare -a aConflictFiles
+declare -i iCnt=1
+declare -i iCntX=1
+declare -a aAnnotateCheckConflict
+declare -i iConflictCnt
+declare -i iProg=0
+declare -i iFiles=0
+declare -i iGCnt=0
+declare -i iTLCnt=2
+
+ConfText1="<<< "
+ConfText2="HEAD"
+ConfText3=">>>>>>> "
+
+COLUMNS=$(tput cols)
+#echo "kolumny $COLUMNS"
+
+   while [ $iTLCnt -lt $COLUMNS ]; do
+   TerminalLength+=" "
+   #echo "$iTLCnt $TerminalLength $iTLCnt"
+
+   iTLCnt+=1
+
+   done
+
+#--------------------------------------------------------
+function print_clear_line(){
+
+   echo  -ne  "\r $TerminalLength"
+}
+#--------------------------------------------------------
+function print_search_info() {
+    infoText=$1
+    iStrWidth=${#infoText}
+    iStrWidth=$iStrWidth+6
+
+
+    if  [ $iStrWidth -gt $COLUMNS ];
+    then
+      iStrWidth=$iStrWidth-$COLUMNS+10
+
+      #iStrWidth=$iStrWidth-$COLUMNS
+      echo  -ne  "\r["$ProgressPercent"%]...${infoText:iStrWidth}"
+
+      #echo  -ne  "\r...${infoText:iStrWidth}"
+    else
+      echo  -ne  "\r["$ProgressPercent"%]$infoText"
+
+      #echo  -ne  "\r$infoText"
+   fi
+
+}
+#--------------------------------------------------------
+function print_search_info2() {
+    infoText=$1
+    iStrWidth=${#infoText}
+
+    if  [ $iStrWidth -gt $COLUMNS ];
+    then
+      iStrWidth=$iStrWidth-$COLUMNS+10
+
+        echo  -ne  "\r...${infoText:iStrWidth}"
+    else
+        echo  -ne  "\r$infoText"
+   fi
+
+}
+#--------------------------------------------------------
+function count_all_files(){
+
+while read -r sFileNN; do
+
+   iFiles+=1
+
+done <<< "$(git ls-files)"
+}
+#--------------------------------------------------------
+
+function count_progr(){
+
+ iProg=$iGCnt  # docelowo wyliczeneie progresji
+
+}
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ print_clear_line
+
+ print_search_info  "Counting file..."
+
+count_all_files
+echo "All files "$iFiles
+
+echo "Searching Conflicts ..."
+
+while read -r sFileName; do
+ iGCnt+=1
+ count_progr
+ ProgressPercent=$[$iProg*100/$iFiles]
+
+
+ print_clear_line
+  #print_search_info "["$ProgressPercent"%]"$sFileName
+  print_search_info $sFileName
+
+ iConflictCnt=`grep -I -c  "$ConfText1$ConfText2" $sFileName`
+ #echo ">>>%"$iConflictCnt"%<<<"
+
+  if [  "$iConflictCnt" -gt 0 ];
+ then
+
+         aConflictFiles[iCnt]=$sFileName
+         iCnt+=1
+
+#         if [ $iCnt -gt 4 ];  #tymczasowe
+#         then
+#          break
+#        fi
+
+ fi
+
+done <<< "$(git ls-files)"
+print_clear_line
+
+#-----------------------------------
+
+echo ""
+echo "Lista confliktów i plików: "
+echo""
+
+
+while [ $iCntX -lt $iCnt ]
+do
+
+	echo "${aConflictFiles[$iCntX]}"
+  lineCommit=`grep -I "$ConfText3" ${aConflictFiles[$iCntX]}`
+  iCntX+=1
+
+  while read -r strFileLine; do
+     echo  $strFileLine
+     break
+  done <<< "$lineCommit"
+
+  
+
+  done
+
+ echo "Koniec "
